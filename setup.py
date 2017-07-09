@@ -2,23 +2,16 @@
 # -*- coding: utf-8 -*-
 
 from setuptools import setup
-#from codecs import open
-#from os import path
+from os import path
 
 
-# here = path.abspath(path.dirname(__file__))
-#
-# def readme():
-#     with open(path.join(here, 'README.md'), encoding='utf-8') as f:
-#         return f.read()
+here = path.abspath(path.dirname(__file__))
+exec(open(path.join(here, 'azion/version.py')).read())
 
-# def get_version():
-#     with open(path.join(here, 'azion/version.py'), encoding='utf-8') as f:
-#         return f.read()
 
-#__version__ = get_version()
-__version__ = '0.1.0'
-#exec(open(path.join(here, 'azion/version.py')).read())
+def readme():
+    with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+        return f.read()
 
 
 setup(
