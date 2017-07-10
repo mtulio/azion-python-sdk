@@ -54,7 +54,10 @@ class AzionAPI(APIService):
             'cdn_config': '/content_delivery/configurations'
         }
         self.status = {
+            'exists': 1,
+            'wrong_payload': 2,
             'ok': 200,
+            'bad_request': 404,
             'not_found': 404,
             'token_expired': 403,
             'too_many_req': 429,
@@ -93,9 +96,10 @@ class AzionAPI(APIService):
             :return: Return the Dict with CDN Origins configuration.
             :rtype : Dict
         """
+
         if isinstance(cdn_config, dict):
             path = '{:s}/{}/origins'.format(self.routes['cdn_config'], cdn_config['id'])
-            cdn_config['origins'] = self.get_all(path)
+            cdn_config['origins'] = self.get(path)
 
         return cdn_config
 
@@ -107,9 +111,10 @@ class AzionAPI(APIService):
             :return: Return the Dict with CDN Cache configuration.
             :rtype : Dict
         """
+
         if isinstance(cdn_config, dict):
             path = '{:s}/{}/cache_settings'.format(self.routes['cdn_config'], cdn_config['id'])
-            cdn_config['cache_settings'] = self.get_all(path)
+            cdn_config['cache_settings'] = self.get(path)
 
         return cdn_config
 
@@ -121,9 +126,10 @@ class AzionAPI(APIService):
             :return: Return the Dict with CDN Rules Engine configuration.
             :rtype : Dict
         """
+
         if isinstance(cdn_config, dict):
             path = '{:s}/{}/rules_engine'.format(self.routes['cdn_config'], cdn_config['id'])
-            cdn_config['rules_engine'] = self.get_all(path)
+            cdn_config['rules_engine'] = self.get(path)
 
         return cdn_config
 
@@ -185,6 +191,7 @@ class AzionAPI(APIService):
                 configuration is returned in array format.
             :rtype : Dict
         """
+
         try:
             status = self.status['not_found']
             cfg = {}
@@ -193,25 +200,23 @@ class AzionAPI(APIService):
 
             if cdn_id is not None:
                 path = '{:s}/{:d}'.format(self.routes['cdn_config'], cdn_id)
-                c = self.get_all(path)
+                c = self.get(path)
                 if not isinstance(c, dict):
                     return cfg_all, 401
 
                 if 'id' in c:
-                    #c = self.cdn_config_expand(c)
                     return (self._cdn_config_callback(c, option=option),
                             self.status['ok'])
 
                 return cfg, status
 
             elif cdn_name is not None:
-                cfg_all = self.get_all(self.routes['cdn_config'])
+                cfg_all = self.get(self.routes['cdn_config'])
                 if not isinstance(cfg_all, list):
                     return cfg_all, 401
 
                 for c in cfg_all:
                     if c['name'] == cdn_name:
-                        # return self.cdn_config_expand(c), self.status['ok']
                         return (self._cdn_config_callback(c, option=option),
                                 self.status['ok'])
 
@@ -219,7 +224,7 @@ class AzionAPI(APIService):
 
             else:
                 cfg = []
-                cfg_all = self.get_all(self.routes['cdn_config'])
+                cfg_all = self.get(self.routes['cdn_config'])
                 if not isinstance(cfg_all, list):
                     return cfg_all, 401
 

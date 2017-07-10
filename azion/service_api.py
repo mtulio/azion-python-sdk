@@ -165,66 +165,46 @@ class APIService(object):
         return response.json()
 
     # [R]EAD - GET config
-    def get_all(self, path):
+    def get(self, path):
         """ Return all content of Path in JSON format. """
 
-        res =  self.request('GET', path)
-        if res.status_code == 200:
-            return res.json()
-
-        return { 'error': 'HTTP request error ID: {:d}'.format(res.status_code)}
-
-    def get(self, path, item_id):
-        """ Return the JSON item from path with ID item_id. """
-
-        if isinstance(item_id, int):
-            uri = '%s/%d' % (path, item_id)
-            response = self.request('GET', uri)
+        response =  self.request('GET', path)
+        if response.status_code == 200:
             return response.json()
-        else:
-            return {'error_message': 'Unale to get %s ID [%s]' % (path,
-                                                                  item_id)}
 
-    def get_path(self, path=''):
-        """ Return the JSON from path """
-        response = self.request('GET', path)
-        return response.json()
+        return { 'error': '{:d}: {:s}'.format(response.status_code,
+                                              response.text)}
 
     # [U]PDATE - config
     ## Update fields
-    def update(self, path, data):
-        """ Update an object Item. """
+    def update(self, path, payload):
+        """ #TODO: Update an object Item. """
 
-        payload = '{}'.format(data)
-        new_url = "%s/%d" % (path, data['id'])
+        response = self.request('PATCH', path, data=payload)
+        if response.status_code >= 200 and response.status_code < 300:
+            return response.json()
 
-        response = self.request('PATCH', new_url, data=payload)
-
-        return response.json()
+        return { 'error': '{:d}: {:s}'.format(response.status_code,
+                                              response.text)}
 
     ## Override config
-    def override(self, path, data):
-        """ Update an object Item. """
+    def override(self, path, payload):
+        """ #TODO: Update an object Item. """
 
-        payload = '{}'.format(data)
-        new_url = "%s/%d" % (self.uri, data['id'])
+        response = self.request('PUT', path, data=payload)
+        if response.status_code >= 200 and response.status_code < 300:
+            return response.json()
 
-        response = self.request('PUT', new_url, data=payload)
-
-        return response.json()
-
+        return { 'error': '{:d}: {:s}'.format(response.status_code,
+                                              response.text)}
 
     # [D]ELETE an Item
-    def delete(self, path, item_id, force_purge=False):
-        """ Delete an object Item. """
+    def delete(self, path, force_purge=False):
+        """ #TODO: Delete an object Item. """
 
-        if not isinstance(item_id, int):
-            return {"message_error": "Please define item_id to be deleted."}
+        response = self.request('DELETE', path)
+        if response.status_code >= 200 and response.status_code < 300:
+            return response.json()
 
-        if force_purge:
-            payload = '{ "id": %d , "force_purge": true }' % (item_id)
-        else:
-            payload = '{ "id": %d }' % (item_id)
-
-        response = self.request('DELETE', path, data=payload)
-        return response.json()
+        return { 'error': '{:d}: {:s}'.format(response.status_code,
+                                              response.text)}
