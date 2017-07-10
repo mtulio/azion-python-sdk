@@ -33,12 +33,19 @@ logger = logging.getLogger(__name__)
 
 class AzionAPI(APIService):
     """
-    Generic implementation of Azion API to manage main configs.
+        This is a abstraction layer of Azion API that handle many
+        operations and abstract the use in python applications.
     """
     __version__ = __version__
 
     def __init__(self, url_api=None, token=None, token_type='session'):
-        """ Construct generic object """
+        """
+            Construct AzionAPI object to interact with API.
+
+            :param str url_api: URL of Azion's API.
+            :param str token: Session Token to interact with the API.
+            :param str token_type: Type of token. In future we can use other ways.
+        """
 
         if url_api is None:
             url_api = 'https://api.azion.net'
@@ -79,6 +86,13 @@ class AzionAPI(APIService):
     # AZION CDN Operations / abstraction
     # CDN abstraction
     def _cdn_origins_config(self, cdn_config):
+        """
+            Return CDN Origins configuration.
+
+            :param str cdn_config: base CDN config to be get origins.
+            :return: Return the Dict with CDN Origins configuration.
+            :rtype : Dict
+        """
         if isinstance(cdn_config, dict):
             path = '{:s}/{}/origins'.format(self.routes['cdn_config'], cdn_config['id'])
             cdn_config['origins'] = self.get_all(path)
@@ -86,6 +100,13 @@ class AzionAPI(APIService):
         return cdn_config
 
     def _cdn_cache_config(self, cdn_config):
+        """
+            Return CDN Cache configuration.
+
+            :param str cdn_config: base CDN config to be get cache settings.
+            :return: Return the Dict with CDN Cache configuration.
+            :rtype : Dict
+        """
         if isinstance(cdn_config, dict):
             path = '{:s}/{}/cache_settings'.format(self.routes['cdn_config'], cdn_config['id'])
             cdn_config['cache_settings'] = self.get_all(path)
@@ -93,6 +114,13 @@ class AzionAPI(APIService):
         return cdn_config
 
     def _cdn_rules_config(self, cdn_config):
+        """
+            Return CDN Rules Engine configuration.
+
+            :param str cdn_config: base CDN config to be get rules_engine.
+            :return: Return the Dict with CDN Rules Engine configuration.
+            :rtype : Dict
+        """
         if isinstance(cdn_config, dict):
             path = '{:s}/{}/rules_engine'.format(self.routes['cdn_config'], cdn_config['id'])
             cdn_config['rules_engine'] = self.get_all(path)
@@ -101,11 +129,19 @@ class AzionAPI(APIService):
 
     def _cdn_config_expand(self, cdn_config):
         """
-        Expand all config in a dict. The config available are:
-        * digital_certificate
-        * origin - /content_delivery/configurations/:conf_id/origins
-        * cache_settings - /content_delivery/configurations/:conf_id/cache_settings
-        * rules_engine /content_delivery/configurations/:conf_id/rules_engine
+            Discovery and expand CDN configuration. This operation should be
+            done because current API does not return all CDN config in base
+            request.
+
+            :param str cdn_config: CDN dict to be expaended.
+            :return: Return the Dict with CDN configuration.
+            :rtype : Dict
+
+            Expand all config in a dict. The config available are:
+            * digital_certificate
+            * origin - /content_delivery/configurations/:conf_id/origins
+            * cache_settings - /content_delivery/configurations/:conf_id/cache_settings
+            * rules_engine /content_delivery/configurations/:conf_id/rules_engine
         """
 
         if not isinstance(cdn_config, dict):
@@ -118,6 +154,15 @@ class AzionAPI(APIService):
         return cdn_config
 
     def _cdn_config_callback(self, cdn_config, option='all'):
+        """
+            Route operation to return the desired CDN configuration.
+
+            :param str cdn_config: Dict to be routed.
+            :param str option: Trigger to route function.
+            :return: Return the Dict with CDN configuration.
+            :rtype : Dict
+        """
+
         if option == 'all':
             return self._cdn_config_expand(cdn_config)
         elif option == 'origin':
@@ -129,9 +174,17 @@ class AzionAPI(APIService):
 
     def get_cdn_config(self, option='all', cdn_id=None, cdn_name=None):
         """
-        Get [all] CDN config from an ID or NAME.
-        """
+            Return the CDN configuration, can lookup by ID or Name.
 
+            :param str option: The operation to be done. Could be all, origin,
+                cache and rules.
+            :param int cdn_id: CDN ID to get the configuration.
+            :param str cdn_name: CDN Name to get the configuration.
+            :return: Return the Dict with configuration when cdn_id or cdn_name
+                is provided. When leaves default values of arguments, all the
+                configuration is returned in array format.
+            :rtype : Dict
+        """
         try:
             status = self.status['not_found']
             cfg = {}
