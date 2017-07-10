@@ -11,6 +11,10 @@
 
 `pip install -e git+git@github.com:mtulio/azion-python-sdk.git@master#egg=azion`
 
+* From PyPi
+
+`pip install azion`
+
 ## DEPENDENCIES
 
 * Valid user in [AZION platform]()
