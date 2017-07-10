@@ -15,7 +15,7 @@ def readme():
 
 
 setup(
-    name='azion',
+        name='azion',
     packages=["azion"],
     version=__version__,
     description='AZION API SDK',
