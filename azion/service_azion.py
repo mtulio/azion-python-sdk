@@ -87,6 +87,18 @@ class AzionAPI(APIService):
 
 
     # AZION CDN Operations / abstraction
+    def _get(self, path):
+        """
+            Wrapper to force JSON version in get() from Service API
+        """
+        return self.get(path, json_ver=1)
+
+    def _create(self, path, payload):
+        """
+            Wrapper to force JSON version and payload in create() from Service API.
+        """
+        return self.create(path, payload_json=payload, json_ver=1)
+
     # CDN abstraction
     def _cdn_origins_config(self, cdn_config):
         """
@@ -99,7 +111,7 @@ class AzionAPI(APIService):
 
         if isinstance(cdn_config, dict):
             path = '{:s}/{}/origins'.format(self.routes['cdn_config'], cdn_config['id'])
-            cdn_config['origins'] = self.get(path)
+            cdn_config['origins'] = self._get(path)
 
         return cdn_config
 
@@ -114,7 +126,7 @@ class AzionAPI(APIService):
 
         if isinstance(cdn_config, dict):
             path = '{:s}/{}/cache_settings'.format(self.routes['cdn_config'], cdn_config['id'])
-            cdn_config['cache_settings'] = self.get(path)
+            cdn_config['cache_settings'] = self._get(path)
 
         return cdn_config
 
@@ -129,7 +141,7 @@ class AzionAPI(APIService):
 
         if isinstance(cdn_config, dict):
             path = '{:s}/{}/rules_engine'.format(self.routes['cdn_config'], cdn_config['id'])
-            cdn_config['rules_engine'] = self.get(path)
+            cdn_config['rules_engine'] = self._get(path)
 
         return cdn_config
 
@@ -200,7 +212,7 @@ class AzionAPI(APIService):
 
             if cdn_id is not None:
                 path = '{:s}/{:d}'.format(self.routes['cdn_config'], cdn_id)
-                c = self.get(path)
+                c = self._get(path)
                 if not isinstance(c, dict):
                     return cfg_all, 401
 
@@ -211,7 +223,7 @@ class AzionAPI(APIService):
                 return cfg, status
 
             elif cdn_name is not None:
-                cfg_all = self.get(self.routes['cdn_config'])
+                cfg_all = self._get(self.routes['cdn_config'])
                 if not isinstance(cfg_all, list):
                     return cfg_all, 401
 
@@ -224,7 +236,7 @@ class AzionAPI(APIService):
 
             else:
                 cfg = []
-                cfg_all = self.get(self.routes['cdn_config'])
+                cfg_all = self._get(self.routes['cdn_config'])
                 if not isinstance(cfg_all, list):
                     return cfg_all, 401
 
@@ -243,6 +255,142 @@ class AzionAPI(APIService):
                     status = self.status['ok']
 
                 return cfg, status
+
+        except ServiceException as e:
+            return {'{}'.format(e)}, self.status['server_error']
+
+    def _cdn_check_payload(self, cdn_name, cdn_payload):
+        """
+            Check CDN config payload is valid on creation.
+        """
+
+        return True
+
+    def _cdn_generate_payload(self, cdn_name):
+        """
+            Create default CDN attributes.
+        """
+        payload = {
+            "name": cdn_name,
+            "origin_address": "domain.{}".format(cdn_name),
+            "cname": ["www.{}".format(cdn_name),],
+            "delivery_protocol": "http",
+            "cdn_cache_settings": "override",
+            "cdn_cache_settings_minimum_ttl": 2592000,
+            "origins": [
+                {
+                    "name": "Another_Origin",
+                    "origin_type": "single_origin",
+                    "host_header": "www2.{}".format(cdn_name),
+                    "origin_protocol_policy": "preserve",
+                    "addresses": [
+                        {
+                         "address": "single-origin.{}".format(cdn_name)
+                        }
+                    ],
+                    "connection_timeout": 60,
+                    "timeout_between_bytes": 120
+                }
+            ]
+        }
+        return payload
+
+    def _create_cdn_recursive(self, cdn_payload):
+        """
+            Create the CDN recursively:
+            1. CDN
+            2. origins
+            3. Cache Settings
+            4. Rules Engine
+        """
+
+        # CDN
+        path = '{:s}'.format(self.routes['cdn_config'])
+        cdn_config = self._create(path, cdn_payload)
+
+        if (not isinstance(cdn_config, dict)):
+            return {'error': '{}'.format(cdn_config)}, self.status['not_found']
+
+        try:
+            cdn_id = cdn_config['id']
+        except Exception as e:
+            return {'error': '{}'.format(cdn_config, e)}, self.status['exists']
+
+        # Origin
+        if ('origins' in cdn_payload):
+            """ Valid request (#TODO fix error 'No JSON object could be decoded'):
+                curl -X POST -d '{"name": "Another_Origin",
+                    "origin_protocol_policy": "preserve",
+                    "host_header": "www2.test-api3",
+                    "timeout_between_bytes": 120,
+                    "connection_timeout": 60,
+                    "origin_type": "single_origin",
+                    "addresses": [{"address": "single-origin.test-api3"}]}'
+                    -H "Accept: application/json; version=1"
+                    -H "Content-Type: application/json"
+                    -H "Authorization: Token <MY_TOKEN>"
+                     https://api.azion.net/content_delivery/configurations/1499731364/origins
+            """
+            path = '{:s}/origins/{:d}'.format(self.routes['cdn_config'],
+                                              cdn_config['id'])
+            cdn_config['origins'] = []
+            for o in cdn_payload['origins']:
+                print ("Creating origin {}".format(o['name']))
+                try:
+                    cdn_config['origins'].append(self._create(path, o))
+                except Exception as e:
+                    return {'error': '{:s}'.format(e)}, self.status['not_found']
+
+        return (cdn_config, self.status['ok'])
+
+
+    def _create_cdn(self, cdn_name, cdn_payload=None):
+        """
+            Create the CDN. Return it's configuration.
+        """
+
+        # If payload is not provided, generate from sample
+        if cdn_payload is None:
+            cdn_payload = self._cdn_generate_payload(cdn_name)
+
+        if isinstance(cdn_payload, dict):
+            return self._create_cdn_recursive(cdn_payload)
+
+        return {}, self.status['not_found']
+
+    def create_cdn(self, cdn_name, cdn_payload=None):
+        """
+            Wrapper to create the CDN. Return it's configuration.
+
+            :param str cdn_name: The operation to be done. Could be all, origin,
+                cache and rules.
+            :param dict cdn_payload: CDN ID to get the configuration.
+            :return: Return the Dict with configuration recently created.
+            :rtype : Dict
+        """
+
+        try:
+            status = self.status['not_found']
+            cfg = None
+            if not self.api_has_session():
+                self.init_api()
+
+            cfg_all = self._get(self.routes['cdn_config'])
+            if not isinstance(cfg_all, list):
+                return cfg_all, 401
+
+            for c in cfg_all:
+                if c['name'] == cdn_name:
+                    cfg = c
+
+            if isinstance(cfg, dict):
+                #return {'error': 'CDN Already exists'}, status
+                return cfg, self.status['exists']
+
+            if not self._cdn_check_payload(cdn_name, cdn_payload):
+                return {'error': 'Malformed payload'}, self.status['bad_request']
+
+            return self._create_cdn(cdn_name, cdn_payload)
 
         except ServiceException as e:
             return {'{}'.format(e)}, self.status['server_error']

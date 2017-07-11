@@ -19,8 +19,8 @@
 
 import logging
 import requests
-# from requests.structures import CaseInsensitiveDict
-# from .version import __version__
+from requests.structures import CaseInsensitiveDict
+from .version import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -102,8 +102,9 @@ class APIService(object):
         return True
 
     """ Request """
-    def request(self, method, url, accept_json=True, headers={},
-                params=None, json=None, data=None, files=None, **kwargs):
+    def request(self, method, url, headers={}, params=None, data=None,
+                files=None, data_json=None, accept_json=True, json_ver=None,
+                **kwargs):
         """
         Make a request to Rest API.
         @return Return response object.
@@ -113,12 +114,17 @@ class APIService(object):
         full_url = '%s/%s' % (self.url, url.strip('/'))
         input_headers = _remove_null_values(headers) if headers else {}
 
-        # headers = CaseInsensitiveDict(
-        #      {'user-agent': 'glpi-sdk-python-' + __version__})
+        headers = CaseInsensitiveDict(
+            {'user-agent': 'azion-sdk-python-' + __version__})
 
-        # TODO: make optional the version of json
         if accept_json:
-            headers['accept'] = 'application/json; version=1'
+            if json_ver:
+                headers['accept'] = 'application/json; version={}'.format(json_ver)
+            else:
+                headers['accept'] = 'application/json'
+
+        # Force content type to JSON
+        headers.update({"Content-Type": "application/json"})
 
         try:
             #if self.session is None:
@@ -128,22 +134,18 @@ class APIService(object):
         except ServiceException as e:
             raise ServiceException("Unable to get Session token. ERROR: {}".format(e))
 
-        # if self.token_auth is not None:
-        #     headers.update({'App-Token': self.app_token})
-
         headers.update(input_headers)
 
         # Remove keys with None values
         params = _remove_null_values(params)
         params = _cleanup_param_values(params)
-        json = _remove_null_values(json)
         data = _remove_null_values(data)
         files = _remove_null_values(files)
 
         try:
             response = requests.request(method=method, url=full_url,
                                         headers=headers, params=params,
-                                        data=data, **kwargs)
+                                        data=data, json=data_json, **kwargs)
         except Exception:
             logger.error("ERROR requesting uri(%s) payload(%s)" % (url, data))
             raise
@@ -152,23 +154,19 @@ class APIService(object):
 
     """ Generic Items methods """
     # [C]REATE - Create an Item
-    def create(self, path, data_json=None):
-        """ Create an object Item. """
+    def create(self, path, payload=None, payload_json=None, json_ver=None):
+        """ Create an Item. """
 
-        if (data_json is None):
-            return "{ 'error_message' : 'Payload not found.'}"
-
-        payload = '{}'.format(data_json)
-
-        response = self.request('POST', path, data=payload, accept_json=True)
+        response = self.request('POST', path, data=payload,
+                                json_ver=json_ver, data_json=payload_json)
 
         return response.json()
 
     # [R]EAD - GET config
-    def get(self, path):
+    def get(self, path, json_ver=None):
         """ Return all content of Path in JSON format. """
 
-        response =  self.request('GET', path)
+        response =  self.request('GET', path, json_ver=json_ver)
         if response.status_code == 200:
             return response.json()
 
