@@ -1,10 +1,10 @@
 # Questions
 
-If you are having difficulties using the APIs or have a question about the GLPI-SDK-PYTHON, please ask a question.
+If you are having difficulties or a have a question about the SDK, please tell us.
 
 # Issues
 
-If you encounter an issue with the Python SDK, you are welcome to submit a [bug report](https://github.com/truly-systems/glpi-sdk-python/issues).
+If you encounter an issue with the Python SDK, you are welcome to submit a [bug report](https://github.com/mtulio/azion-sdk-python/issues).
 Before that, please search for similar issues. It's possible somebody has encountered this issue already.
 
 ## Pull Requests
@@ -22,38 +22,11 @@ If you want to contribute to the repository, here's a quick guide:
 
 ## Running the tests
 
-You probably want to set up a [virtualenv].
-
- 1. Clone this repository:
-    ```
-    git clone https://github.com/truly-systems/glpi-sdk-python.git
-    ```
- 2. Install the sdk as an editable package using the current source:
-    ```
-    pip install --editable .
-    ```
- 3. Install the test dependencies with:
-    ```
-    pip install -r requirements-dev.txt
-    ```
- 4. Run the test cases with (now we're only testing PEP8):
-    ```
-    make check-syntax
-    ```
+> TODO
 
 ## Aditional tests
 
-* Install tests dependencies
-
-`make dependencies`
-
-* Test PEP8 syntax
-
-`make check-syntax`
-
-* Test installation setup
-
-`make test-setup`
+> TODO
 
 ## Additional Resources
 + [General GitHub documentation](https://help.github.com/)
