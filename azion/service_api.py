@@ -17,6 +17,7 @@
 
 # from __future__ import print_function
 
+import json
 import logging
 import requests
 from requests.structures import CaseInsensitiveDict
@@ -58,9 +59,9 @@ class APIService(object):
     def __init__(self, url_api, token_auth=None, token_sess=None,
                  username=None, password=None):
         """
-        You can choose in setup initial authentication using username and
-        password, or setup with Authorization HTTP token. If token_auth is set,
-        username and password credentials must be ignored.
+            You can choose in setup initial authentication using username and
+            password, or setup with Authorization HTTP token. If token_auth is set,
+            username and password credentials must be ignored.
         """
         # self.__version__ = __version__
         self.url = url_api
@@ -104,26 +105,26 @@ class APIService(object):
     """ Request """
     def request(self, method, url, headers={}, params=None, data=None,
                 files=None, data_json=None, accept_json=True, json_ver=None,
-                **kwargs):
+                ua_default=True, **kwargs):
         """
         Make a request to Rest API.
         @return Return response object.
         """
 
-        # base API URL + path
         full_url = '%s/%s' % (self.url, url.strip('/'))
         input_headers = _remove_null_values(headers) if headers else {}
 
-        headers = CaseInsensitiveDict(
-            {'user-agent': 'azion-sdk-python-' + __version__})
+        if ua_default:
+            headers = CaseInsensitiveDict(
+                {'user-agent': 'azion-sdk-python-' + __version__})
 
         if accept_json:
             if json_ver:
-                headers['accept'] = 'application/json; version={}'.format(json_ver)
+                h_accept = 'application/json; version={}'.format(json_ver)
             else:
-                headers['accept'] = 'application/json'
+                h_accept = 'application/json'
+            headers.update({"accept": h_accept})
 
-        # Force content type to JSON
         headers.update({"Content-Type": "application/json"})
 
         try:
@@ -131,6 +132,7 @@ class APIService(object):
             #    self.set_session_token()
             if self.token_sess is not None:
                 headers.update({'Authorization':  "Token {}".format(self.token_sess)})
+
         except ServiceException as e:
             raise ServiceException("Unable to get Session token. ERROR: {}".format(e))
 
@@ -160,17 +162,22 @@ class APIService(object):
         response = self.request('POST', path, data=payload,
                                 json_ver=json_ver, data_json=payload_json)
 
-        return response.json()
+        if response.status_code >= 200 and response.status_code < 500:
+            return response.json()
+
+        # 5xx is returning wrong answer
+        return { 'error': '{}'.format(response.status_code)}
 
     # [R]EAD - GET config
     def get(self, path, json_ver=None):
         """ Return all content of Path in JSON format. """
 
         response =  self.request('GET', path, json_ver=json_ver)
-        if response.status_code == 200:
+
+        if response.status_code >= 200 and response.status_code < 500:
             return response.json()
 
-        return { 'error': '{:d}: {:s}'.format(response.status_code,
+        return { 'error': '{} {}'.format(response.status_code,
                                               response.text)}
 
     # [U]PDATE - config
