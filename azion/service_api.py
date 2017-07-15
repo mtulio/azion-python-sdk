@@ -17,10 +17,11 @@
 
 # from __future__ import print_function
 
+import json
 import logging
 import requests
-# from requests.structures import CaseInsensitiveDict
-# from .version import __version__
+from requests.structures import CaseInsensitiveDict
+from .version import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -58,9 +59,9 @@ class APIService(object):
     def __init__(self, url_api, token_auth=None, token_sess=None,
                  username=None, password=None):
         """
-        You can choose in setup initial authentication using username and
-        password, or setup with Authorization HTTP token. If token_auth is set,
-        username and password credentials must be ignored.
+            You can choose in setup initial authentication using username and
+            password, or setup with Authorization HTTP token. If token_auth is set,
+            username and password credentials must be ignored.
         """
         # self.__version__ = __version__
         self.url = url_api
@@ -102,48 +103,51 @@ class APIService(object):
         return True
 
     """ Request """
-    def request(self, method, url, accept_json=True, headers={},
-                params=None, json=None, data=None, files=None, **kwargs):
+    def request(self, method, url, headers={}, params=None, data=None,
+                files=None, data_json=None, accept_json=True, json_ver=None,
+                ua_default=True, **kwargs):
         """
         Make a request to Rest API.
         @return Return response object.
         """
 
-        # base API URL + path
         full_url = '%s/%s' % (self.url, url.strip('/'))
         input_headers = _remove_null_values(headers) if headers else {}
 
-        # headers = CaseInsensitiveDict(
-        #      {'user-agent': 'glpi-sdk-python-' + __version__})
+        if ua_default:
+            headers = CaseInsensitiveDict(
+                {'user-agent': 'azion-sdk-python-' + __version__})
 
-        # TODO: make optional the version of json
         if accept_json:
-            headers['accept'] = 'application/json; version=1'
+            if json_ver:
+                h_accept = 'application/json; version={}'.format(json_ver)
+            else:
+                h_accept = 'application/json'
+            headers.update({"accept": h_accept})
+
+        headers.update({"Content-Type": "application/json"})
 
         try:
             #if self.session is None:
             #    self.set_session_token()
             if self.token_sess is not None:
                 headers.update({'Authorization':  "Token {}".format(self.token_sess)})
+
         except ServiceException as e:
             raise ServiceException("Unable to get Session token. ERROR: {}".format(e))
-
-        # if self.token_auth is not None:
-        #     headers.update({'App-Token': self.app_token})
 
         headers.update(input_headers)
 
         # Remove keys with None values
         params = _remove_null_values(params)
         params = _cleanup_param_values(params)
-        json = _remove_null_values(json)
         data = _remove_null_values(data)
         files = _remove_null_values(files)
 
         try:
             response = requests.request(method=method, url=full_url,
                                         headers=headers, params=params,
-                                        data=data, **kwargs)
+                                        data=data, json=data_json, **kwargs)
         except Exception:
             logger.error("ERROR requesting uri(%s) payload(%s)" % (url, data))
             raise
@@ -152,27 +156,28 @@ class APIService(object):
 
     """ Generic Items methods """
     # [C]REATE - Create an Item
-    def create(self, path, data_json=None):
-        """ Create an object Item. """
+    def create(self, path, payload=None, payload_json=None, json_ver=None):
+        """ Create an Item. """
 
-        if (data_json is None):
-            return "{ 'error_message' : 'Payload not found.'}"
+        response = self.request('POST', path, data=payload,
+                                json_ver=json_ver, data_json=payload_json)
 
-        payload = '{}'.format(data_json)
-
-        response = self.request('POST', path, data=payload, accept_json=True)
-
-        return response.json()
-
-    # [R]EAD - GET config
-    def get(self, path):
-        """ Return all content of Path in JSON format. """
-
-        response =  self.request('GET', path)
-        if response.status_code == 200:
+        if response.status_code >= 200 and response.status_code < 500:
             return response.json()
 
-        return { 'error': '{:d}: {:s}'.format(response.status_code,
+        # 5xx is returning wrong answer
+        return { 'error': '{}'.format(response.status_code)}
+
+    # [R]EAD - GET config
+    def get(self, path, json_ver=None):
+        """ Return all content of Path in JSON format. """
+
+        response =  self.request('GET', path, json_ver=json_ver)
+
+        if response.status_code >= 200 and response.status_code < 500:
+            return response.json()
+
+        return { 'error': '{} {}'.format(response.status_code,
                                               response.text)}
 
     # [U]PDATE - config

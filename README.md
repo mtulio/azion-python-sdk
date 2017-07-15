@@ -1,6 +1,6 @@
 # AZION Python SDK
 
-![PyPi version](https://img.shields.io/pypi/v/glpi.svg)
+[![PyPI](https://img.shields.io/pypi/v/azion.svg)](https://pypi.python.org/pypi/azion/)
 
 Non-official [AZION](https://www.azion.com.br/) SDK written in Python.
 
@@ -80,12 +80,53 @@ api.cdn_config(option='cache', cdn_id=14934121312)
 api.cdn_config(option='rules', cdn_id=14934121312)
 ```
 
+* Create a CDN's from the [Sample Config](./azion/sample.py)
+
+```python
+api.cdn_config(cdn_name='test-api')
+```
+
+> A tuple with dict of CDN config and ID will returned. See sample below
+
+```python
+In []: resp, status = api.cdn_config(cdn_name='test-api1')
+In []: print status
+In []: print json.dumps(resp, indent=4)
+```
+
+
 ## TESTS
 
 > TODOing
 
 `python -m unittest`
 
-## Get involved
+## Get involved!
 
 See [Contributing guide](CONTRIBUTING.md)
+
+## CHANGELOG
+
+### `0.2.0`
+
+* Add support to CDN creation
+* Add sample config to simplify from scratch
+
+### `0.1.2`
+
+* Add get CDN
+* Improve description and docstrings
+
+## TODO
+
+* improve the logging and debbug
+* [CDN] improve the validation before create.
+ * check the existence of item, maybe change it?!
+ * Payload sanity
+* [CDN] add lookup Certificate on creation
+* [CDN] add lookup Firewall before on creation/update Rules Engine
+* [CDN] change the default ('/') Rule Engine to a custom origin
+* improve docstrings and it's builder
+* improve return codes. Eg. based on what API returned
+* improve the time to creation the CDN.
+* Add unit tests
