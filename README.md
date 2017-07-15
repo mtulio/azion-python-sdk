@@ -83,12 +83,17 @@ api.cdn_config(option='rules', cdn_id=14934121312)
 * Create a CDN's from the [Sample Config](./azion/sample.py)
 
 ```python
+api.cdn_config(cdn_name='test-api')
+```
+
+> A tuple with dict of CDN config and ID will returned. See sample below
+
+```python
 In []: resp, status = api.cdn_config(cdn_name='test-api1')
 In []: print status
 In []: print json.dumps(resp, indent=4)
 ```
 
-> A tuple with dict of CDN config and ID will returned. See sample below
 
 ## TESTS
 
@@ -96,10 +101,21 @@ In []: print json.dumps(resp, indent=4)
 
 `python -m unittest`
 
-## Get involved
+## Get involved!
 
 See [Contributing guide](CONTRIBUTING.md)
 
+## CHANGELOG
+
+### `0.2.0`
+
+* Add support to CDN creation
+* Add sample config to simplify from scratch
+
+### `0.1.2`
+
+* Add get CDN
+* Improve description and docstrings
 
 ## TODO
 
@@ -110,5 +126,7 @@ See [Contributing guide](CONTRIBUTING.md)
 * [CDN] add lookup Certificate on creation
 * [CDN] add lookup Firewall before on creation/update Rules Engine
 * [CDN] change the default ('/') Rule Engine to a custom origin
-* improve docstrings
+* improve docstrings and it's builder
 * improve return codes. Eg. based on what API returned
+* improve the time to creation the CDN.
+* Add unit tests

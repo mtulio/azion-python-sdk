@@ -34,6 +34,29 @@ def azion_cdn_origin(cdn_name):
                 "timeout_between_bytes": 30
             },
             {
+                "name": "origin-balanced",
+                "origin_type": "load_balancer",
+                "method": "ip_hash",
+                "host_header": "www-lb.{}".format(cdn_name),
+                "origin_protocol_policy": "preserve",
+                "addresses": [
+                    {
+                     "address": "www-lb1.{}".format(cdn_name),
+                     "weight": 10,
+                     "server_role": "primary",
+                     "is_active": True
+                    },
+                    {
+                     "address": "origin-lb2.{}".format(cdn_name),
+                     "weight": 1,
+                     "server_role": "backup",
+                     "is_active": True
+                    }
+                ],
+                "connection_timeout": 10,
+                "timeout_between_bytes": 30
+            },
+            {
                 "name": "origin-static",
                 "origin_type": "single_origin",
                 "host_header": "static.{}".format(cdn_name),
@@ -86,12 +109,10 @@ def azion_cdn_cache():
         "cache_by_cookies": "ignore",
       },
       {
-        "name": "cache-default",
+        "name": "cache-bypass",
         "browser_cache_settings": False,
-        "cdn_cache_settings": "override",
-        "cdn_cache_settings_maximum_ttl": 1,
+        "cdn_cache_settings": "bypass",
         "cache_by_query_string": "ignore",
-        "enable_query_string_sort": False,
         "cache_by_cookies": "ignore",
       }
     ]
@@ -139,13 +160,23 @@ def azion_cdn_rules():
             "cache_settings_name": "cache-5-minutes-ignore-qs-cookies"
           },
           {
+            "path": "/proxy",
+            "regex": False,
+            "protocol_policy": "http",
+            "gzip": True,
+            "behavior": "acceleration",
+            "path_origin_name": "origin-proxy",
+            "cache_settings_name": "cache-bypass",
+            "forward_cookies": "all"
+          },
+          {
             "path": "/site",
             "regex": False,
             "protocol_policy": "http",
             "gzip": True,
             "behavior": "acceleration",
             "path_origin_name": "origin-default",
-            "cache_settings_name": "cache-default",
+            "cache_settings_name": "cache-bypass",
             "forward_cookies": "all"
           }
     ]

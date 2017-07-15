@@ -60,7 +60,7 @@ class AzionAPI(APIService):
 
             :param str url_api: URL of Azion's API.
             :param str token: Session Token to interact with the API.
-            :param str token_type: Type of token. In future we can use other ways.
+            :param str token_type: Type of token.
         """
 
         if url_api is None:
@@ -80,7 +80,7 @@ class AzionAPI(APIService):
             'server_error': 500
         }
 
-        # throtle defined by API - HTTP 429 https://www.azion.com.br/developers/api/
+        # API throtle - HTTP 429 https://www.azion.com.br/developers/api/
         self.throtle_limit_min = 20
 
         if token_type == 'session':
@@ -88,7 +88,7 @@ class AzionAPI(APIService):
                 try:
                     token = os.getenv("AZION_TOKEN") or None
                 except:
-                    raise ('Unable to get Session token AZION_TOKEN from env')
+                    raise ('Unable to get Session token from env AZION_TOKEN')
 
         #TODO
         elif token_type == 'auth':
@@ -96,7 +96,7 @@ class AzionAPI(APIService):
                 try:
                     token = os.getenv("AZION_BASE64") or None
                 except:
-                    raise ('Unable to get Base64 auth token AZION_BASE64 from env')
+                    raise ('Unable to get Base64 token from env AZION_BASE64')
 
         # force to use session token
         APIService.__init__(self, url_api, token_sess=token)
@@ -105,13 +105,13 @@ class AzionAPI(APIService):
     # AZION CDN Operations / abstraction
     def _get(self, path):
         """
-            Wrapper to force JSON version in get() from Service API
+            Wrapper of get() request to enforce some common parameters.
         """
         return self.get(path, json_ver=1)
 
     def _create(self, path, payload):
         """
-            Wrapper to force JSON version and payload in create() from Service API.
+            Wrapper of create request to enforce some common parameters.
         """
         return self.create(path, payload_json=payload, json_ver=1)
 
@@ -126,7 +126,8 @@ class AzionAPI(APIService):
         """
 
         if isinstance(cdn_config, dict):
-            path = '{:s}/{}/origins'.format(self.routes['cdn_config'], cdn_config['id'])
+            path = '{:s}/{:d}/origins'.format(self.routes['cdn_config'],
+                                              cdn_config['id'])
             cdn_config['origins'] = self._get(path)
 
         return cdn_config
@@ -141,7 +142,8 @@ class AzionAPI(APIService):
         """
 
         if isinstance(cdn_config, dict):
-            path = '{:s}/{}/cache_settings'.format(self.routes['cdn_config'], cdn_config['id'])
+            path = '{:s}/{:d}/cache_settings'.format(self.routes['cdn_config'],
+                                                   cdn_config['id'])
             cdn_config['cache_settings'] = self._get(path)
 
         return cdn_config
@@ -156,7 +158,8 @@ class AzionAPI(APIService):
         """
 
         if isinstance(cdn_config, dict):
-            path = '{:s}/{}/rules_engine'.format(self.routes['cdn_config'], cdn_config['id'])
+            path = '{:s}/{:d}/rules_engine'.format(self.routes['cdn_config'],
+                                                   cdn_config['id'])
             cdn_config['rules_engine'] = self._get(path)
 
         return cdn_config
@@ -171,11 +174,6 @@ class AzionAPI(APIService):
             :return: Return the Dict with CDN configuration.
             :rtype : Dict
 
-            Expand all config in a dict. The config available are:
-            * digital_certificate
-            * origin - /content_delivery/configurations/:conf_id/origins
-            * cache_settings - /content_delivery/configurations/:conf_id/cache_settings
-            * rules_engine /content_delivery/configurations/:conf_id/rules_engine
         """
 
         if not isinstance(cdn_config, dict):
@@ -289,7 +287,6 @@ class AzionAPI(APIService):
             4. Rules Engine
         """
 
-        # CDN
         ##> TODO: lookup certificate when CDN is using https, or just set ID
         path = '{:s}'.format(self.routes['cdn_config'])
         cdn_config = self._create(path, cdn_payload)
@@ -314,11 +311,6 @@ class AzionAPI(APIService):
                 except Exception as e:
                     return {'error': '{:s}'.format(e)}, self.status['not_found']
 
-        ## Create FAKE Config:
-        # cdn_payload = {}
-        # cdn_config = {}
-        # cdn_config['id'] = 1499801376
-
         # Cache
         cdn_payload['cache_settings'] = sample.azion_cdn_cache()
         if ('cache_settings' in cdn_payload):
@@ -341,34 +333,34 @@ class AzionAPI(APIService):
             path = '{:s}/{:d}/rules_engine'.format(self.routes['cdn_config'],
                                               cdn_config['id'])
 
-            for o in cdn_payload['rules_engine']:
+            for r in cdn_payload['rules_engine']:
                 # TODO: check if exists, change it?!
                 try:
-                    o['path_origin_id'] = lookup_id_from_name(o['path_origin_name'],
+                    r['path_origin_id'] = lookup_id_from_name(r['path_origin_name'],
                                                               cdn_config['origins'])
 
-                    if o['path_origin_id'] == 0:
-                        re.append({"error": "{} Origin not found".format(o['path'])})
+                    if r['path_origin_id'] == 0:
+                        re.append({"error": "{} Origin not found".format(r['path'])})
                         continue
 
-                    o.pop('path_origin_name', None)
+                    r.pop('path_origin_name', None)
                 except Exception as e:
                     re.append({"error": "create.rules_engine: {}".format(e)})
                     continue
 
-                if 'cache_settings_name' in o:
+                if 'cache_settings_name' in r:
                     try:
-                        o['cache_settings_id'] = lookup_id_from_name(o['cache_settings_name'],
+                        r['cache_settings_id'] = lookup_id_from_name(r['cache_settings_name'],
                                                                      cdn_config['cache_settings'])
-                        if o['cache_settings_id'] == 0:
+                        if r['cache_settings_id'] == 0:
                             continue
 
-                        o.pop('cache_settings_name', None)
+                        r.pop('cache_settings_name', None)
                     except:
                         continue
 
                 try:
-                    cdn_config['rules_engine'].append(self._create(path, o))
+                    cdn_config['rules_engine'].append(self._create(path, r))
                 except Exception as e:
                     return {'error': '{:s}'.format(e)}, self.status['not_found']
 
