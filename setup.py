@@ -10,17 +10,17 @@ exec(open(path.join(here, 'azion/version.py')).read())
 
 
 def readme():
-    with open(path.join(here, 'README.md'), encoding='utf-8') as f:
-        return f.read()
+    with open(path.join(here, 'README.md')) as f:
+        return f.readlines()
 
 
 setup(
-        name='azion',
+    name='azion',
     packages=["azion"],
     version=__version__,
-    description='AZION API SDK',
+    description="AZION Python SDK - API abstraction layer.",
     url='https://github.com/mtulio/azion-sdk-python',
-    download_url='https://github.com/mtulio/azion-sdk-python/archive/%s.tar.gz' % __version__,
+    download_url='https://github.com/mtulio/azion-python-sdk/archive/%s.tar.gz' % __version__,
     author='Marco Tulio R Braga',
     author_email='braga@mtulio.eng.br',
     license='Apache-2.0',
