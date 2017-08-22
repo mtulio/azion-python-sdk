@@ -148,6 +148,7 @@ class APIService(object):
             response = requests.request(method=method, url=full_url,
                                         headers=headers, params=params,
                                         data=data, json=data_json, **kwargs)
+
         except Exception:
             logger.error("ERROR requesting uri(%s) payload(%s)" % (url, data))
             raise
@@ -166,7 +167,11 @@ class APIService(object):
             return response.json()
 
         # 5xx is returning wrong answer
-        return { 'error': '{}'.format(response.status_code)}
+        if response.text:
+            return { 'error': '{} {}'.format(response.status_code,
+                                             response.text)}
+        else:
+            return { 'error': '{}'.format(response.status_code)}
 
     # [R]EAD - GET config
     def get(self, path, json_ver=None):

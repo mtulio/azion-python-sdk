@@ -113,6 +113,7 @@ class AzionAPI(APIService):
         """
             Wrapper of create request to enforce some common parameters.
         """
+        #print("AzionAPI._create() path=[{}] payload=[{}]".format(path, payload))
         return self.create(path, payload_json=payload, json_ver=1)
 
     # CDN abstraction
@@ -185,6 +186,16 @@ class AzionAPI(APIService):
 
         return cdn_config
 
+    def _cdn_payload_base(self, payload):
+        """Split base configuration from Complete payload."""
+        if 'origins' in payload:
+            del payload['origins']
+        if 'cache_settings' in payload:
+            del payload['cache_settings']
+        if 'rules_engine' in payload:
+            del payload['rules_engine']
+        return payload
+
     def _cdn_config_callback(self, cdn_config, option='all'):
         """
             Route operation to return the desired CDN configuration.
@@ -202,13 +213,15 @@ class AzionAPI(APIService):
             return self._cdn_cache_config(cdn_config)
         elif option == 'rules':
             return self._cdn_rules_config(cdn_config)
+        elif option == 'payload_base':
+            return self._cdn_payload_base(cdn_config)
 
     def get_cdn_config(self, option='all', cdn_id=None, cdn_name=None):
         """
             Return the CDN configuration, can lookup by ID or Name.
 
-            :param str option: The operation to be done. Could be all, origin,
-                cache and rules.
+            :param str option: The config option to be done. Could be: all,
+                origin, cache and rules.
             :param int cdn_id: CDN ID to get the configuration.
             :param str cdn_name: CDN Name to get the configuration.
             :return: Return the Dict with configuration when cdn_id or cdn_name
@@ -288,15 +301,19 @@ class AzionAPI(APIService):
         """
 
         ##> TODO: lookup certificate when CDN is using https, or just set ID
+        payload_req = self._cdn_config_callback(cdn_payload, option='payload_base')
         path = '{:s}'.format(self.routes['cdn_config'])
-        cdn_config = self._create(path, cdn_payload)
+        cdn_config = self._create(path, payload_req)
 
         if (not isinstance(cdn_config, dict)):
             return {'error': '{}'.format(cdn_config)}, self.status['not_found']
+        if 'error' in cdn_config:
+            return {'error': '{}'.format(cdn_config)}, self.status['server_error']
 
         # Origin
         try:
-            cdn_payload['origins'] = sample.azion_cdn_origin(cdn_payload['name'])
+            if ('origins' not in cdn_payload):
+                cdn_payload['origins'] = sample.azion_cdn_origin(cdn_payload['name'])
         except Exception as e:
             return {'error': '{}'.format(cdn_config, e)}, self.status['exists']
 
@@ -312,7 +329,8 @@ class AzionAPI(APIService):
                     return {'error': '{:s}'.format(e)}, self.status['not_found']
 
         # Cache
-        cdn_payload['cache_settings'] = sample.azion_cdn_cache()
+        if ('cache_settings' not in cdn_payload):
+            cdn_payload['cache_settings'] = sample.azion_cdn_cache()
         if ('cache_settings' in cdn_payload):
             cdn_config['cache_settings'] = []
             path = '{:s}/{:d}/cache_settings'.format(self.routes['cdn_config'],
@@ -326,7 +344,8 @@ class AzionAPI(APIService):
                     return {'error': '{:s}'.format(e)}, self.status['not_found']
 
         # Rules
-        cdn_payload['rules_engine'] = sample.azion_cdn_rules()
+        if ('rules_engine' not in cdn_payload):
+            cdn_payload['rules_engine'] = sample.azion_cdn_rules()
         if ('rules_engine' in cdn_payload):
             cdn_config['rules_engine'] = []
             re = cdn_config['rules_engine']
