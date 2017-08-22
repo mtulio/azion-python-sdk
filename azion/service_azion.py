@@ -23,6 +23,7 @@ import os
 import sys
 import logging
 import time
+import ast
 
 from service_api import APIService, ServiceException
 from .version import __version__
@@ -73,7 +74,7 @@ class AzionAPI(APIService):
             'exists': 1,
             'wrong_payload': 2,
             'ok': 200,
-            'bad_request': 404,
+            'bad_request': 401,
             'not_found': 404,
             'token_expired': 403,
             'too_many_req': 429,
@@ -388,16 +389,20 @@ class AzionAPI(APIService):
 
     def _create_cdn(self, cdn_name, cdn_payload=None):
         """
-            Create the CDN. Return it's configuration.
+        Callback CDN creation, generate a sample config when payload is
+        not defined.
         """
         # If payload is not provided, generate from a sample
         if cdn_payload is None:
             cdn_payload = sample.azion_cdn(cdn_name)
 
+        if not isinstance(cdn_payload, dict):
+            cdn_payload = ast.literal_eval(cdn_payload)
+
         if isinstance(cdn_payload, dict):
             return self._create_cdn_recursive(cdn_payload)
 
-        return {}, self.status['not_found']
+        return {'EROOR _create_cdn()'}, self.status['not_found']
 
     def create_cdn(self, cdn_name, cdn_payload=None):
         """
@@ -418,7 +423,7 @@ class AzionAPI(APIService):
 
             cfg_all = self._get(self.routes['cdn_config'])
             if not isinstance(cfg_all, list):
-                return cfg_all, 401
+                return cfg_all, self.status['bad_request']
 
             for c in cfg_all:
                 if c['name'] == cdn_name:
