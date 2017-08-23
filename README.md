@@ -47,37 +47,37 @@ api = AzionAPI()
 * Get all CDNs
 
 ```python
-api.get_cdn()
+api.get_cdn_config()
 ```
 
 * Get an CDN by NAME
 
 ```python
-api.get_cdn(cdn_name='test-api')
+api.get_cdn_config(cdn_name='test-api')
 ```
 
 * Get an CDN by ID
 
 ```python
-api.get_cdn(cdn_id=14934121312)
+api.get_cdn_config(cdn_id=14934121312)
 ```
 
 * Get CDN's Origin config from an ID
 
 ```python
-api.get_cdn(option='origin', cdn_id=14934121312)
+api.get_cdn_config(option='origin', cdn_id=14934121312)
 ```
 
 * Get CDN's Cache config from an ID
 
 ```python
-api.get_cdn(option='cache', cdn_id=14934121312)
+api.get_cdn_config(option='cache', cdn_id=14934121312)
 ```
 
 * Get CDN's Rules Engine config from an ID
 
 ```python
-api.get_cdn(option='rules', cdn_id=14934121312)
+api.get_cdn_config(option='rules', cdn_id=14934121312)
 ```
 
 * Create a CDN's from the [Sample Config](./azion/sample.py)

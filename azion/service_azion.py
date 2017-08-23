@@ -71,8 +71,8 @@ class AzionAPI(APIService):
             'cdn_config': '/content_delivery/configurations'
         }
         self.status = {
-            'exists': 1,
-            'wrong_payload': 2,
+            'exists': 2000,
+            'wrong_payload': 4000,
             'ok': 200,
             'bad_request': 401,
             'not_found': 404,
@@ -102,6 +102,12 @@ class AzionAPI(APIService):
         # force to use session token
         APIService.__init__(self, url_api, token_sess=token)
 
+    # Get Attributes functions
+    def get_attr_status_message(self, status_id):
+        """Return status message from mapper."""
+        for m in self.status:
+            if self.status[m] == status_id:
+                return m
 
     # AZION CDN Operations / abstraction
     def _get(self, path):
@@ -114,7 +120,6 @@ class AzionAPI(APIService):
         """
             Wrapper of create request to enforce some common parameters.
         """
-        #print("AzionAPI._create() path=[{}] payload=[{}]".format(path, payload))
         return self.create(path, payload_json=payload, json_ver=1)
 
     # CDN abstraction
@@ -188,14 +193,16 @@ class AzionAPI(APIService):
         return cdn_config
 
     def _cdn_payload_base(self, payload):
-        """Split base configuration from Complete payload."""
-        if 'origins' in payload:
-            del payload['origins']
+        """Copy original payload and remove extra config."""
+        payload_base = payload.copy()
+
+        if 'origins' in payload_base:
+            del payload_base['origins']
         if 'cache_settings' in payload:
-            del payload['cache_settings']
+            del payload_base['cache_settings']
         if 'rules_engine' in payload:
-            del payload['rules_engine']
-        return payload
+            del payload_base['rules_engine']
+        return payload_base
 
     def _cdn_config_callback(self, cdn_config, option='all'):
         """
@@ -272,7 +279,7 @@ class AzionAPI(APIService):
                     if count > (self.throtle_limit_min - 3):
                         #print ("Avoiding Throtle {} of {}. Waiting 50s".format(count,
                         #                                self.throtle_limit_min))
-                        time.sleep(50)
+                        time.sleep(60)
                         count = 0
 
                     cfg.append(self._cdn_config_expand(c))
@@ -288,7 +295,7 @@ class AzionAPI(APIService):
 
     def _cdn_check_payload(self, cdn_name, cdn_payload):
         """
-            # TODO: Check CDN config payload is valid on creation.
+            # TODO: Check CDN config payload is valid.
         """
         return True
 
@@ -301,14 +308,13 @@ class AzionAPI(APIService):
             4. Rules Engine
         """
 
-        ##> TODO: lookup certificate when CDN is using https, or just set ID
-        payload_req = self._cdn_config_callback(cdn_payload, option='payload_base')
+        payload_base = self._cdn_config_callback(cdn_payload, option='payload_base')
         path = '{:s}'.format(self.routes['cdn_config'])
-        cdn_config = self._create(path, payload_req)
+        cdn_config = self._create(path, payload_base)
 
         if (not isinstance(cdn_config, dict)):
             return {'error': '{}'.format(cdn_config)}, self.status['not_found']
-        if 'error' in cdn_config:
+        if ('error' in cdn_config):
             return {'error': '{}'.format(cdn_config)}, self.status['server_error']
 
         # Origin
@@ -363,7 +369,7 @@ class AzionAPI(APIService):
                         re.append({"error": "{} Origin not found".format(r['path'])})
                         continue
 
-                    r.pop('path_origin_name', None)
+                    del r['path_origin_name']
                 except Exception as e:
                     re.append({"error": "create.rules_engine: {}".format(e)})
                     continue
@@ -375,7 +381,7 @@ class AzionAPI(APIService):
                         if r['cache_settings_id'] == 0:
                             continue
 
-                        r.pop('cache_settings_name', None)
+                        del r['cache_settings_name']
                     except:
                         continue
 
@@ -393,7 +399,7 @@ class AzionAPI(APIService):
         not defined.
         """
         # If payload is not provided, generate from a sample
-        if cdn_payload is None:
+        if (cdn_payload is None):
             cdn_payload = sample.azion_cdn(cdn_name)
 
         if not isinstance(cdn_payload, dict):
