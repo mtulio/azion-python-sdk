@@ -19,12 +19,12 @@ setup(
     packages=["azion"],
     version=__version__,
     description="AZION Python SDK - API abstraction layer.",
-    url='https://github.com/mtulio/azion-sdk-python',
+    url='https://github.com/mtulio/azion-python-sdk',
     download_url='https://github.com/mtulio/azion-python-sdk/archive/%s.tar.gz' % __version__,
     author='Marco Tulio R Braga',
     author_email='braga@mtulio.eng.br',
     license='Apache-2.0',
-    keywords=['AZOIN', 'SDK'],
+    keywords=['AZOIN', 'SDK', 'CDN'],
     install_requires=[
         'requests',
     ]

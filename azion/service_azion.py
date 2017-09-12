@@ -386,7 +386,10 @@ class AzionAPI(APIService):
                         continue
 
                 try:
-                    cdn_config['rules_engine'].append(self._create(path, r))
+                    r_resp = self._create(path, r)
+                    cdn_config['rules_engine'].append(r_resp)
+                    if 'error' in r_resp:
+                        return (cdn_config, self.status['ok'])
                 except Exception as e:
                     return {'error': '{:s}'.format(e)}, self.status['not_found']
 

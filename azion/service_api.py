@@ -168,7 +168,7 @@ class APIService(object):
 
         # 5xx is returning wrong answer
         if response.text:
-            return { 'error': '{} {}'.format(response.status_code,
+            return { 'error': '{ "code": {}, "msg": \"{}\"}'.format(response.status_code,
                                              response.text)}
         else:
             return { 'error': '{}'.format(response.status_code)}
